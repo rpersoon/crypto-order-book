@@ -37,6 +37,10 @@ class OrderBook(threading.Thread):
         self.running = True
         self.last_heartbeat = datetime.datetime.now()
 
+        # Some exchanges specify that a delete of a non-existing order can happen. We do not raise errors if that
+        # happens when this flag is set (in the child class).
+        self.soft_delete_fail = False
+
     def run(self):
         """
         Main run function of the order book, executed in a thread using start(). Starts the order book and processes
@@ -178,8 +182,10 @@ class OrderBook(threading.Thread):
             index = get_index(update_content[3], self.data_store[market]['order_book_ask'])
 
             if index is False:
-                raise OrderBookError("Request to delete not existing ask order with rate %s" % update_content[3])
-
+                if not self.soft_delete_fail:
+                    logger.error("Request to delete not existing sell order with rate %s. Restarting." %
+                                 update_content[3])
+                    self.restart = True
             else:
                 del self.data_store[market]['order_book_ask'][index]
 
@@ -187,7 +193,10 @@ class OrderBook(threading.Thread):
             index = get_index(update_content[3], self.data_store[market]['order_book_bid'], True)
 
             if index is False:
-                raise OrderBookError("Request to delete not existing bid order with rate %s" % update_content[3])
+                if not self.soft_delete_fail:
+                    logger.error("Request to delete not existing buy order with rate %s. Restarting." %
+                                 update_content[3])
+                    self.restart = True
 
             else:
                 del self.data_store[market]['order_book_bid'][index]
