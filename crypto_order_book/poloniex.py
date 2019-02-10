@@ -38,8 +38,7 @@ class PoloniexOrderBook(OrderBook):
 
         try:
             socket_handle = websocket.create_connection("wss://api2.poloniex.com:443", timeout=self.timeout)
-
-        except (websocket.WebSocketException, socket.timeout) as e:
+        except (websocket.WebSocketException, socket.timeout, ConnectionError, TimeoutError) as e:
             raise OrderBookError("Could not connect to websocket: %s" % e)
 
         return socket_handle
@@ -78,8 +77,7 @@ class PoloniexOrderBook(OrderBook):
 
         try:
             received_message = self.socket_handle.recv()
-
-        except (websocket.WebSocketException, TimeoutError) as e:
+        except (websocket.WebSocketException, TimeoutError, ConnectionError) as e:
             raise OrderBookError("Websocket receive failed: %s" % e)
 
         # Discard empty messages
