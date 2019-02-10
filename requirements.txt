@@ -1,0 +1,4 @@
+# We need to pin sortedcontainers to a 1.x version, as an incompatible and unfinished 2.x version was released that is
+# still missing functionality that we need
+sortedcontainers==1.5.10
+websocket-client==0.54.0

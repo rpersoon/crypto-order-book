@@ -9,6 +9,5 @@ setup(
    version='1.0.0',
    description='Cryptocurrency exchange order book',
    author='Ricardo Persoon',
-   packages=['crypto_order_book'],
-   install_requires=['sortedcontainers', 'websocket-client'],
+   packages=['crypto_order_book']
 )
