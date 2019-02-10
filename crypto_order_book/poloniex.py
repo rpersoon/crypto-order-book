@@ -1,7 +1,6 @@
 # Copyright (c) 2017 - 2019 Ricardo Persoon
 # Distributed under the MIT software license, see the accompanying file LICENSE
 
-
 from .exceptions import OrderBookError
 from .order_book import OrderBook
 
@@ -17,6 +16,12 @@ logger = logging.getLogger('Orderbook')
 class PoloniexOrderBook(OrderBook):
 
     def __init__(self, markets, timeout=10):
+        """
+        Initialise the Poloniex order book
+
+        :param markets: list with markets to connect to
+        :param timeout: timeout of the websocket connection
+        """
 
         # Initialise the thread
         OrderBook.__init__(self, markets, timeout)
@@ -41,13 +46,12 @@ class PoloniexOrderBook(OrderBook):
 
     def disconnect(self):
         """
-        Disconnect from the websocket API. No exceptions in case of issues, as failing to disconnect is not a problem
+        Disconnect from the websocket API. No exceptions in case of issues, as failing to disconnect is not an issue
         """
 
-        # Close the websocket, while waiting for a maximum of 3 seconds. Any exceptions are discarded.
+        # Close the websocket, while waiting for a maximum of 3 seconds. Exceptions are ignored.
         try:
             self.socket_handle.close(timeout=3)
-
         except websocket.WebSocketException:
             pass
 
@@ -84,7 +88,6 @@ class PoloniexOrderBook(OrderBook):
 
         try:
             decoded_message = json.loads(received_message)
-
         except ValueError:
             raise OrderBookError("Couldn't decode JSON message after receiving update")
 
@@ -147,10 +150,8 @@ class PoloniexOrderBook(OrderBook):
         # Verify that the given market is not yet defined
         try:
             self.translate_market_id_to_market(market_id)
-
         except OrderBookError:
             pass
-
         else:
             raise OrderBookError("Received initialisation for market with ID %s, which is already defined" % market_id)
 
@@ -200,7 +201,6 @@ class PoloniexOrderBook(OrderBook):
             # Amount 0.0 indicates a removal from the book
             if update_amount == 0.0:
                 return ['remove_ask', base_currency, quote_currency, update_rate]
-
             else:
                 return ['update_ask', base_currency, quote_currency, update_rate, update_amount]
 
@@ -210,7 +210,6 @@ class PoloniexOrderBook(OrderBook):
             # Amount 0.0 indicates a removal from the book
             if update_amount == 0.0:
                 return ['remove_bid', base_currency, quote_currency, update_rate]
-
             else:
                 return ['update_bid', base_currency, quote_currency, update_rate, update_amount]
 
@@ -227,7 +226,6 @@ class PoloniexOrderBook(OrderBook):
 
         try:
             return self.market_id_to_market[market_id]
-
         except KeyError:
             raise OrderBookError("Market with ID %s not yet defined" % market_id)
 

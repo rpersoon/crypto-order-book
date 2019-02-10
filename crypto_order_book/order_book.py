@@ -19,13 +19,10 @@ class OrderBook(threading.Thread):
 
     def __init__(self, markets, timeout=10):
         """
-        Initialisation function for order book
+        Initialise the order book
 
-        :param markets: list with markets to retrieve
-        :param timeout: timeout of the connection with the remote websocket API
-        :param log_method: method for custom logging. If not provided, the module will print to stdout
-        :param log_level: whether the custom function accepts a second parameter with the level of the message.
-                                 The level is a string and one of either 'info', 'warning' or 'error'
+        :param markets: list with markets to connect to
+        :param timeout: timeout of the websocket connection
         """
 
         # Initialise the thread
@@ -71,7 +68,6 @@ class OrderBook(threading.Thread):
                 # Call the connect function, implemented by the child class
                 try:
                     self.socket_handle = self.connect()
-
                 except OrderBookError as e:
                     logger.warning("Could not connect with the websocket API: %s" % e)
 
@@ -103,7 +99,6 @@ class OrderBook(threading.Thread):
                 # Call the update method of the child. Each call returns a list with 0 or more update messages
                 try:
                     updates = self.receive()
-
                 except OrderBookError as e:
                     logger.warning("Error while receiving data: %s" % e)
                     self.restart = True
@@ -157,7 +152,6 @@ class OrderBook(threading.Thread):
             # Update the value if an existing entry is found, or insert it if the entry is new
             if index is False:
                 self.data_store[market]['order_book_ask'].add([update_content[3], update_content[4]])
-
             else:
                 self.data_store[market]['order_book_ask'][index] = [update_content[3], update_content[4]]
 
@@ -172,7 +166,6 @@ class OrderBook(threading.Thread):
             # Update the value if an existing entry is found, or insert it if the entry is new
             if index is False:
                 self.data_store[market]['order_book_bid'].add([update_content[3], update_content[4]])
-
             else:
                 self.data_store[market]['order_book_bid'][index] = [update_content[3], update_content[4]]
 
@@ -216,10 +209,9 @@ class OrderBook(threading.Thread):
         # Verify that the market exists
         try:
             self.data_store[(base_currency, quote_currency)]
-
         except KeyError:
             raise OrderBookError("The market %s - %s does not exist" % (base_currency.upper(),
-                                                                            quote_currency.upper()))
+                                                                        quote_currency.upper()))
 
         # Verify that we are not going to restart
         if self.restart:
@@ -237,13 +229,15 @@ class OrderBook(threading.Thread):
                                      (datetime.datetime.now() - self.last_heartbeat).seconds)
 
         # Verify that the top bid is not higher than or equal to the top ask, which would imply a problem
-        if self.data_store[(base_currency.lower(), quote_currency.lower())]['order_book_ask'][0] <= \
-                self.data_store[(base_currency.lower(), quote_currency.lower())]['order_book_bid'][0]:
+        if len(self.data_store[(base_currency.lower(), quote_currency.lower())]['order_book_ask']) > 0 and \
+                len(self.data_store[(base_currency.lower(), quote_currency.lower())]['order_book_bid']) > 0:
+            if self.data_store[(base_currency.lower(), quote_currency.lower())]['order_book_ask'][0] <= \
+                    self.data_store[(base_currency.lower(), quote_currency.lower())]['order_book_bid'][0]:
 
-            # Set the restart flag
-            self.restart = True
+                # Set the restart flag
+                self.restart = True
 
-            raise OrderBookOutOfSync("Inconsistent data in order book")
+                raise OrderBookOutOfSync("Inconsistent data in order book")
 
     def initialisation_completed(self):
         """
@@ -325,7 +319,6 @@ class OrderBook(threading.Thread):
 
         try:
             return self.data_store[(base_currency.lower(), quote_currency.lower())]['order_book_ask'][:amount]
-
         except KeyError:
             raise OrderBookError("Unknown currency pair %s - %s" % (base_currency.upper(), quote_currency.upper()))
 
@@ -348,7 +341,6 @@ class OrderBook(threading.Thread):
 
         try:
             return self.data_store[(base_currency.lower(), quote_currency.lower())]['order_book_bid'][:amount]
-
         except KeyError:
             raise OrderBookError("Unknown currency pair %s - %s" % (base_currency.upper(), quote_currency.upper()))
 
@@ -391,7 +383,6 @@ class OrderBook(threading.Thread):
         # Verify that the market exists
         try:
             self.data_store[(base_currency.lower(), quote_currency.lower())]['order_book_ask']
-
         except KeyError:
             raise OrderBookError("Unknown currency pair %s - %s" % (base_currency.upper(), quote_currency.upper()))
 
@@ -433,7 +424,6 @@ class OrderBook(threading.Thread):
         # Verify that the market exists
         try:
             self.data_store[(base_currency.lower(), quote_currency.lower())]['order_book_bid']
-
         except KeyError:
             raise OrderBookError("Unknown currency pair %s - %s" % (base_currency.upper(), quote_currency.upper()))
 
@@ -472,6 +462,5 @@ class OrderBook(threading.Thread):
         while True:
             if self.initialisation_completed():
                 return True
-
             else:
                 time.sleep(0.1)
