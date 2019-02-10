@@ -6,14 +6,18 @@ from .exceptions import OrderBookError, OrderBookOutOfSync
 from .binary_search import get_index
 
 import datetime
+import logging
 import sortedcontainers
 import threading
 import time
 
 
+logger = logging.getLogger('OrderBook')
+
+
 class OrderBook(threading.Thread):
 
-    def __init__(self, markets, timeout=10, log_method=print, log_level=False):
+    def __init__(self, markets, timeout=10):
         """
         Initialisation function for order book
 
@@ -28,8 +32,6 @@ class OrderBook(threading.Thread):
         threading.Thread.__init__(self)
 
         self.markets = markets
-        self.log_method = log_method
-        self.log_level = log_level
         self.timeout = timeout
 
         self.data_store = {}
@@ -71,7 +73,7 @@ class OrderBook(threading.Thread):
                     self.socket_handle = self.connect()
 
                 except OrderBookError as e:
-                    self.log("Could not connect with the websocket API: %s" % e, 'warning')
+                    logger.warning("Could not connect with the websocket API: %s" % e)
 
                     connection_tries += 1
 
@@ -84,7 +86,7 @@ class OrderBook(threading.Thread):
                     if connection_tries > 2000:
                         raise OrderBookError("Failed to connect with the websocket after 2000 tries")
 
-            self.log("Order book connection established", 'info')
+            logger.info("Order book connection established")
 
             # Subscribe to all specified markets
             for pair, _ in self.data_store.items():
@@ -103,7 +105,7 @@ class OrderBook(threading.Thread):
                     updates = self.receive()
 
                 except OrderBookError as e:
-                    self.log("Error while receiving data: %s" % e, 'warning')
+                    logger.warning("Error while receiving data: %s" % e)
                     self.restart = True
 
                 else:
@@ -115,7 +117,7 @@ class OrderBook(threading.Thread):
 
             # Initialise a restart if requested
             if self.restart and self.running:
-                self.log("Order book restart initiated", 'info')
+                logger.info("Order book restart initiated")
 
                 # Try to cleanly disconnect
                 self.disconnect()
@@ -260,21 +262,6 @@ class OrderBook(threading.Thread):
                 return False
 
         return True
-
-    def log(self, message, level='info'):
-        """
-        Log a message using the defined logging method
-
-        :param message: the message to log
-        :param level: the log-level of the message
-        """
-
-        # Pass the log level as second parameter to the method if desired
-        if self.log_level:
-            self.log_method(message, level)
-
-        else:
-            self.log_method(message)
 
     def connect(self):
         """

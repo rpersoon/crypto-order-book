@@ -6,16 +6,20 @@ from .exceptions import OrderBookError
 from .order_book import OrderBook
 
 import json
+import logging
 import socket
 import websocket
 
 
+logger = logging.getLogger('Orderbook')
+
+
 class PoloniexOrderBook(OrderBook):
 
-    def __init__(self, markets, timeout=10, log_method=print, log_level=False):
+    def __init__(self, markets, timeout=10):
 
         # Initialise the thread
-        OrderBook.__init__(self, markets, timeout, log_method, log_level)
+        OrderBook.__init__(self, markets, timeout)
 
         # The Poloniex order book requires additional logic to translate the internal market ID to the actual market
         self.market_id_to_market = {}
@@ -118,7 +122,7 @@ class PoloniexOrderBook(OrderBook):
             self.verify_sequence(decoded_message[1], base_currency, quote_currency)
 
         else:
-            self.log("Discarding unknown message: %s" % decoded_message, 'warning')
+            logger.warning("Discarding unknown message: %s" % decoded_message)
 
         return message_list
 
@@ -242,8 +246,8 @@ class PoloniexOrderBook(OrderBook):
         if self.data_store[(base_currency, quote_currency)]['last_sequence'] != sequence_number - 1 and \
                 self.data_store[(base_currency, quote_currency)]['last_sequence'] is not None:
 
-            self.log("Invalid sequence number in order book: old sequence was %s, while the new sequence is %s" %
-                     (self.data_store[(base_currency, quote_currency)]['last_sequence'], sequence_number), 'error')
+            logger.error("Invalid sequence number in order book: old sequence was %s, while the new sequence is %s" %
+                         (self.data_store[(base_currency, quote_currency)]['last_sequence'], sequence_number))
 
             # Initiate a restart of the order book
             self.restart = True
